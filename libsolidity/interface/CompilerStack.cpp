@@ -69,6 +69,7 @@
 #include <liblangutil/Scanner.h>
 #include <liblangutil/SemVerHandler.h>
 
+#include <libevmasm/EVMAssemblyStack.h>
 #include <libevmasm/Exceptions.h>
 
 #include <libsolutil/SwarmHash.h>
@@ -241,7 +242,7 @@ void CompilerStack::setModelCheckerSettings(ModelCheckerSettings _settings)
 	m_modelCheckerSettings = _settings;
 }
 
-void CompilerStack::setLibraries(std::map<std::string, util::h160> const& _libraries)
+void CompilerStack::setLibraries(map<string, util::h160> const& _libraries)
 {
 	if (m_stackState >= ParsedAndImported)
 		solThrow(CompilerError, "Must set libraries before parsing.");
@@ -423,6 +424,27 @@ void CompilerStack::importASTs(map<string, Json::Value> const& _sources)
 	m_compilationSourceType = CompilationSourceType::SolidityAST;
 
 	storeContractDefinitions();
+}
+
+void CompilerStack::importFromEVMAssemblyStack(std::string const& _sourceName, std::string const& _source)
+{
+	solRequire(m_stackState == Empty, CompilerError, "");
+	m_evmAssemblyStack = std::make_unique<evmasm::EVMAssemblyStack>(m_evmVersion);
+	Json::Value evmAsmJson;
+	if (m_evmAssemblyStack->parseAndAnalyze(_sourceName, _source))
+	{
+		m_evmAssemblyStack->assemble();
+		string const name{m_evmAssemblyStack->name()};
+		Json::Value const& json = m_evmAssemblyStack->json();
+		m_sourceJsons[name] = json;
+		Contract& contract = m_contracts[name];
+		contract.evmAssembly = m_evmAssemblyStack->evmAssembly();
+		contract.evmRuntimeAssembly= m_evmAssemblyStack->evmRuntimeAssembly();
+		contract.object = m_evmAssemblyStack->object();
+		contract.runtimeObject = m_evmAssemblyStack->runtimeObject();
+
+		m_stackState = CompilationSuccessful;
+	}
 }
 
 bool CompilerStack::analyze()
@@ -659,6 +681,7 @@ bool CompilerStack::isRequestedContract(ContractDefinition const& _contract) con
 
 bool CompilerStack::compile(State _stopAfter)
 {
+	solAssert(m_compilationSourceType != CompilationSourceType::EvmAssemblyJSON);
 	m_stopAfter = _stopAfter;
 	if (m_stackState < AnalysisPerformed)
 		if (!parseAndAnalyze(_stopAfter))
@@ -703,7 +726,7 @@ bool CompilerStack::compile(State _stopAfter)
 					{
 						if (
 							SourceLocation const* sourceLocation =
-							boost::get_error_info<langutil::errinfo_sourceLocation>(_unimplementedError)
+								boost::get_error_info<langutil::errinfo_sourceLocation>(_unimplementedError)
 						)
 						{
 							string const* comment = _unimplementedError.comment();
@@ -711,10 +734,9 @@ bool CompilerStack::compile(State _stopAfter)
 								1834_error,
 								Error::Type::CodeGenerationError,
 								*sourceLocation,
-								"Unimplemented feature error" +
-								((comment && !comment->empty()) ? ": " + *comment : string{}) +
-								" in " +
-								_unimplementedError.lineInfo()
+								"Unimplemented feature error"
+									+ ((comment && !comment->empty()) ? ": " + *comment : string{}) + " in "
+									+ _unimplementedError.lineInfo()
 							);
 							return false;
 						}
@@ -814,7 +836,6 @@ Json::Value CompilerStack::generatedSources(string const& _contractName, bool _r
 				sources[0]["id"] = sourceIndex;
 				sources[0]["language"] = "Yul";
 				sources[0]["contents"] = std::move(source);
-
 			}
 		}
 		return sources;
@@ -851,7 +872,7 @@ string const* CompilerStack::runtimeSourceMapping(string const& _contractName) c
 	return c.runtimeSourceMapping ? &*c.runtimeSourceMapping : nullptr;
 }
 
-std::string const CompilerStack::filesystemFriendlyName(string const& _contractName) const
+string const CompilerStack::filesystemFriendlyName(string const& _contractName) const
 {
 	if (m_stackState < AnalysisPerformed)
 		solThrow(CompilerError, "No compiled contracts found.");
@@ -865,7 +886,7 @@ std::string const CompilerStack::filesystemFriendlyName(string const& _contractN
 				contract.second.contract != matchContract.contract)
 		{
 			// If it does, then return its fully-qualified name, made fs-friendly
-			std::string friendlyName = boost::algorithm::replace_all_copy(_contractName, "/", "_");
+			string friendlyName = boost::algorithm::replace_all_copy(_contractName, "/", "_");
 			boost::algorithm::replace_all(friendlyName, ":", "_");
 			boost::algorithm::replace_all(friendlyName, ".", "_");
 			return friendlyName;
@@ -944,7 +965,13 @@ Json::Value CompilerStack::assemblyJSON(string const& _contractName) const
 
 	Contract const& currentContract = contract(_contractName);
 	if (currentContract.evmAssembly)
-		return currentContract.evmAssembly->assemblyJSON(sourceIndices());
+	{
+		std::vector<std::string> sources = sourceNames();
+		if (std::find(sources.begin(), sources.end(), CompilerContext::yulUtilityFileName()) == sources.end())
+			sources.emplace_back(CompilerContext::yulUtilityFileName());
+		currentContract.evmAssembly->setSourceList(sources);
+		return currentContract.evmAssembly->assemblyJSON();
+	}
 	else
 		return Json::Value();
 }
@@ -952,8 +979,14 @@ Json::Value CompilerStack::assemblyJSON(string const& _contractName) const
 vector<string> CompilerStack::sourceNames() const
 {
 	vector<string> names;
-	for (auto const& s: m_sources)
-		names.push_back(s.first);
+	if (m_evmAssemblyStack)
+	{
+		for (auto const& s: m_evmAssemblyStack->evmAssembly()->sourceList())
+			names.push_back(s);
+	} else {
+		for (auto const& s: m_sources)
+			names.push_back(s.first);
+	}
 	return names;
 }
 
@@ -961,10 +994,21 @@ map<string, unsigned> CompilerStack::sourceIndices() const
 {
 	map<string, unsigned> indices;
 	unsigned index = 0;
-	for (auto const& s: m_sources)
-		indices[s.first] = index++;
-	solAssert(!indices.count(CompilerContext::yulUtilityFileName()), "");
-	indices[CompilerContext::yulUtilityFileName()] = index++;
+	if (m_evmAssemblyStack)
+	{
+		for (auto const& s: m_evmAssemblyStack->evmAssembly()->sourceList())
+			if (s != CompilerContext::yulUtilityFileName())
+				indices[s] = index++;
+	}
+	else
+	{
+		for (auto const& s: m_sources)
+			if (s.first != CompilerContext::yulUtilityFileName())
+				indices[s.first] = index++;
+	}
+
+	if (indices.find(CompilerContext::yulUtilityFileName()) == indices.end())
+		indices[CompilerContext::yulUtilityFileName()] = index++;
 	return indices;
 }
 
@@ -1117,7 +1161,7 @@ ContractDefinition const& CompilerStack::contractDefinition(string const& _contr
 }
 
 size_t CompilerStack::functionEntryPoint(
-	std::string const& _contractName,
+	string const& _contractName,
 	FunctionDefinition const& _function
 ) const
 {
@@ -1285,10 +1329,10 @@ bool onlySafeExperimentalFeaturesActivated(set<ExperimentalFeature> const& featu
 }
 }
 
-void CompilerStack::assemble(
+void CompilerStack::assembleYul(
 	ContractDefinition const& _contract,
-	std::shared_ptr<evmasm::Assembly> _assembly,
-	std::shared_ptr<evmasm::Assembly> _runtimeAssembly
+	shared_ptr<evmasm::Assembly> _assembly,
+	shared_ptr<evmasm::Assembly> _runtimeAssembly
 )
 {
 	solAssert(m_stackState >= AnalysisPerformed, "");
@@ -1398,7 +1442,7 @@ void CompilerStack::compileContract(
 
 	_otherCompilers[compiledContract.contract] = compiler;
 
-	assemble(_contract, compiler->assemblyPtr(), compiler->runtimeAssemblyPtr());
+	assembleYul(_contract, compiler->assemblyPtr(), compiler->runtimeAssemblyPtr());
 }
 
 void CompilerStack::generateIR(ContractDefinition const& _contract)
@@ -1476,7 +1520,7 @@ void CompilerStack::generateEVMFromIR(ContractDefinition const& _contract)
 	string deployedName = IRNames::deployedObject(_contract);
 	solAssert(!deployedName.empty(), "");
 	tie(compiledContract.evmAssembly, compiledContract.evmRuntimeAssembly) = stack.assembleEVMWithDeployed(deployedName);
-	assemble(_contract, compiledContract.evmAssembly, compiledContract.evmRuntimeAssembly);
+	assembleYul(_contract, compiledContract.evmAssembly, compiledContract.evmRuntimeAssembly);
 }
 
 void CompilerStack::generateEwasm(ContractDefinition const& _contract)
@@ -1568,6 +1612,11 @@ string CompilerStack::createMetadata(Contract const& _contract, bool _forIR) con
 	case CompilationSourceType::SolidityAST:
 		sourceType = "SolidityAST";
 		break;
+	case CompilationSourceType::EvmAssemblyJSON:
+		sourceType = "EvmAssemblyJson";
+		break;
+	default:
+		solAssert(false);
 	}
 	meta["language"] = sourceType;
 	meta["compiler"]["version"] = VersionStringStrict;
@@ -1599,7 +1648,7 @@ string CompilerStack::createMetadata(Contract const& _contract, bool _forIR) con
 	}
 
 	static_assert(sizeof(m_optimiserSettings.expectedExecutionsPerDeployment) <= sizeof(Json::LargestUInt), "Invalid word size.");
-	solAssert(static_cast<Json::LargestUInt>(m_optimiserSettings.expectedExecutionsPerDeployment) < std::numeric_limits<Json::LargestUInt>::max(), "");
+	solAssert(static_cast<Json::LargestUInt>(m_optimiserSettings.expectedExecutionsPerDeployment) < numeric_limits<Json::LargestUInt>::max(), "");
 	meta["settings"]["optimizer"]["runs"] = Json::Value(Json::LargestUInt(m_optimiserSettings.expectedExecutionsPerDeployment));
 
 	/// Backwards compatibility: If set to one of the default settings, do not provide details.

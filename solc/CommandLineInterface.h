@@ -24,11 +24,12 @@
 
 #include <solc/CommandLineParser.h>
 
+#include <libevmasm/EVMAssemblyStack.h>
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/DebugSettings.h>
 #include <libsolidity/interface/FileReader.h>
-#include <libsolidity/interface/UniversalCallback.h>
 #include <libsolidity/interface/SMTSolverCommand.h>
+#include <libsolidity/interface/UniversalCallback.h>
 #include <libyul/YulStack.h>
 
 #include <iostream>
@@ -84,6 +85,7 @@ private:
 	void printVersion();
 	void printLicense();
 	void compile();
+	void assembleFromEvmAssemblyJson();
 	void serveLSP();
 	void link();
 	void writeLinkedFiles();
@@ -92,12 +94,13 @@ private:
 	/// @returns the full object with library placeholder hints in hex.
 	static std::string objectWithLinkRefsHex(evmasm::LinkerObject const& _obj);
 
-	void assemble(yul::YulStack::Language _language, yul::YulStack::Machine _targetMachine);
+	void assembleYul(yul::YulStack::Language _language, yul::YulStack::Machine _targetMachine);
 
 	void outputCompilationResults();
 
 	void handleCombinedJSON();
 	void handleAst();
+	void handleEVMAssembly(std::string const& _contract);
 	void handleBinary(std::string const& _contract);
 	void handleOpcode(std::string const& _contract);
 	void handleIR(std::string const& _contract);
