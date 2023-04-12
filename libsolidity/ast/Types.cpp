@@ -314,7 +314,7 @@ char const* Type::categoryName(Type::Category _category)
 	case Category::UserDefinedValueType: return "user-defined value type";
 	case Category::Tuple: return "tuple";
 	case Category::Mapping: return "mapping";
-	case Category::TypeType: return "type of a type";
+	case Category::TypeType: return "type";
 	case Category::Modifier: return "modifier";
 	case Category::Magic: return "magic variable";
 	case Category::Module: return "module";
