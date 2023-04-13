@@ -8,6 +8,7 @@ The following are called value types because their variables will always be pass
 are used as function arguments or in assignments.
 
 .. index:: ! bool, ! true, ! false
+.. _booleans:
 
 Booleans
 --------
@@ -565,6 +566,7 @@ Any Unicode line terminator which is not a newline (i.e. LF, VF, FF, CR, NEL, LS
 terminate the string literal. Newline only terminates the string literal if it is not preceded by a ``\``.
 
 .. index:: ! literal;unicode
+.. _unicode_literals:
 
 Unicode Literals
 ----------------
@@ -577,6 +579,7 @@ They also support the very same escape sequences as regular string literals.
     string memory a = unicode"Hello 😃";
 
 .. index:: ! literal;hexadecimal, bytes
+.. _hexadecimal_literals:
 
 Hexadecimal Literals
 --------------------
