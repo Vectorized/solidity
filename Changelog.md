@@ -23,7 +23,7 @@ Bugfixes:
 
 
 AST Changes:
- * AST: Add ``isSuffixCall`` field to ``FunctionCall`` AST node, which is ``true`` for calls resulting from applying a literal suffix.
+ * AST: Add ``isSuffixCall`` field to ``FunctionCall`` AST node, which is ``true`` for calls resulting from applying a literal suffix. Additionally, the ``arguments`` annotation is omitted from such notes.
  * AST: Add ``suffix`` field to ``FunctionDefinition`` AST node, which is ``true`` for free function definitions using the ``suffix`` modifier.
  * AST: add the ``internalFunctionID`` field to the AST nodes of functions that may be called via the internal dispatch. These IDs are always generated, but they are only used in via-IR code generation.
 
