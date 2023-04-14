@@ -346,7 +346,7 @@ void DeclarationTypeChecker::endVisit(ArrayTypeName const& _typeName)
 		if (!lengthValue)
 		{
 			string suffixErrorMessage;
-			if (auto const* functionCall = dynamic_cast<FunctionCall const*>(length))
+			if (auto&& functionCall = dynamic_cast<FunctionCall const*>(length))
 				if (functionCall->isSuffixCall())
 					suffixErrorMessage = " A suffixed literal is not a constant expression unless the suffix is a subdenomination.";
 
