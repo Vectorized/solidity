@@ -1022,11 +1022,11 @@ void IRGeneratorForStatements::endVisit(FunctionCall const& _functionCall)
 
 			solAssert(parameterTypes.size() == 2);
 			solAssert(arguments.size() == 1 && arguments[0]);
-			auto const* literal = dynamic_cast<Literal const*>(arguments[0].get());
+			auto&& literal = dynamic_cast<Literal const*>(arguments[0].get());
 			solAssert(literal);
 			solAssert(literal->annotation().type);
 
-			auto const* literalRationalType = dynamic_cast<RationalNumberType const*>(literal->annotation().type);
+			auto&& literalRationalType = dynamic_cast<RationalNumberType const*>(literal->annotation().type);
 			solAssert(literalRationalType);
 
 			auto&& [mantissa, exponent] = literalRationalType->fractionalDecomposition();

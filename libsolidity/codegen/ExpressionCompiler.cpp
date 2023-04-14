@@ -707,11 +707,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			{
 				solAssert(parameterTypes.size() == 2);
 				solAssert(arguments.size() == 1 && arguments[0]);
-				auto const* literal = dynamic_cast<Literal const*>(arguments[0].get());
+				auto&& literal = dynamic_cast<Literal const*>(arguments[0].get());
 				solAssert(literal);
 				solAssert(literal->annotation().type);
 
-				auto const* rationalNumberType = dynamic_cast<RationalNumberType const*>(literal->annotation().type);
+				auto&& rationalNumberType = dynamic_cast<RationalNumberType const*>(literal->annotation().type);
 				solAssert(rationalNumberType);
 
 				auto&& [mantissa, exponent] = rationalNumberType->fractionalDecomposition();
