@@ -447,8 +447,8 @@ bool TypeChecker::visit(FunctionDefinition const& _function)
 			m_errorReporter.typeError(9128_error, _function.parameterList().location(), parameterCountMessage.value());
 		else if (_function.parameterList().parameters().size() == 2)
 		{
-			auto const* mantissaType = dynamic_cast<IntegerType const*>(_function.parameterList().parameters()[0]->type());
-			auto const* exponentType = dynamic_cast<IntegerType const*>(_function.parameterList().parameters()[1]->type());
+			auto&& mantissaType = dynamic_cast<IntegerType const*>(_function.parameterList().parameters()[0]->type());
+			auto&& exponentType = dynamic_cast<IntegerType const*>(_function.parameterList().parameters()[1]->type());
 
 			vector<string> mantissaOrExponentTypeErrorMessages;
 			if (!mantissaType)
@@ -474,7 +474,7 @@ bool TypeChecker::visit(FunctionDefinition const& _function)
 		}
 		else if (_function.parameterList().parameters().size() == 1)
 		{
-			auto const* parameterType = _function.parameterList().parameters()[0]->type();
+			auto&& parameterType = _function.parameterList().parameters()[0]->type();
 
 			if (dynamic_cast<FixedPointType const*>(parameterType))
 				m_errorReporter.typeError(
@@ -516,8 +516,8 @@ bool TypeChecker::visit(FunctionDefinition const& _function)
 		for (ASTPointer<VariableDeclaration const> returnParameter: _function.returnParameterList()->parameters())
 		{
 			solAssert(returnParameter);
-			auto referenceType = dynamic_cast<ReferenceType const*>(returnParameter->type());
-			auto mappingType = dynamic_cast<MappingType const*>(returnParameter->type());
+			auto&& referenceType = dynamic_cast<ReferenceType const*>(returnParameter->type());
+			auto&& mappingType = dynamic_cast<MappingType const*>(returnParameter->type());
 			if (mappingType || (referenceType && !referenceType->dataStoredIn(DataLocation::Memory)))
 				m_errorReporter.typeError(
 					7251_error,
@@ -2213,7 +2213,7 @@ void TypeChecker::typeCheckSuffixFunctionCall(
 	vector<ASTPointer<Expression const>> const& arguments = _functionCall.arguments();
 	solAssert(arguments.size() == 1 && arguments[0]);
 
-	auto const* literal = dynamic_cast<Literal const*>(arguments[0].get());
+	auto&& literal = dynamic_cast<Literal const*>(arguments[0].get());
 	solAssert(literal);
 
 	Type const* literalType = type(*literal);
@@ -2245,13 +2245,13 @@ void TypeChecker::typeCheckSuffixFunctionCall(
 	}
 	else
 	{
-		auto const* suffixDefinition = dynamic_cast<FunctionDefinition const*>(&_functionType->declaration());
+		auto&& suffixDefinition = dynamic_cast<FunctionDefinition const*>(&_functionType->declaration());
 		solAssert(suffixDefinition);
 		solAssert(!suffixDefinition->virtualSemantics());
 		solAssert(!_functionType->takesArbitraryParameters());
 		solAssert(_functionType->kind() == FunctionType::Kind::Internal);
 
-		auto const* literalRationalType = dynamic_cast<RationalNumberType const*>(literalType);
+		auto&& literalRationalType = dynamic_cast<RationalNumberType const*>(literalType);
 
 		optional<string> parameterTypeMessage;
 		if (_functionType->parameterTypes().size() == 2)
