@@ -5,12 +5,21 @@
 Units and Globally Available Variables
 **************************************
 
+Solidity defines several *denominations*, which can be applied as suffixes to
+:ref:`rational number literals<rational_literals>` to modify the value while still keeping it a literal.
+
+.. note::
+    Denominations should not be confused with :ref:`literal suffixes<literal_suffixes>`, which use
+    the same syntax, but can be defined by the user and result in a
+    :ref:`function call<function-calls-suffix-calls>`.
+
 .. index:: ! wei, ! finney, ! szabo, ! gwei, ! ether, ! denomination;ether
 
 Ether Units
 ===========
 
-A literal number can take a suffix of ``wei``, ``gwei`` or ``ether`` to specify a subdenomination of Ether, where Ether numbers without a postfix are assumed to be Wei.
+A literal number can take a suffix of ``wei``, ``gwei`` or ``ether`` to specify a subdenomination of
+Ether, where Ether numbers without a postfix are assumed to be Wei.
 
 .. code-block:: solidity
     :force:
