@@ -8,7 +8,7 @@ While Solidity :ref:`provides implicit conversions<types-conversion-literals>` f
 there are types for which no built-in conversions are available (most notably the
 :ref:`user-defined value types<user-defined-value-types>`).
 
-To fill this gap, it is possible to define custom conversions in the form of *literal suffixes*.
+To fill this gap, it is possible to define custom conversions as *literal suffixes*.
 
 .. code-block:: solidity
     :force:
@@ -54,7 +54,7 @@ Literal suffixes can be defined by applying the built-in ``suffix`` modifier to 
 
 Only pure functions can be used as suffixes.
 This means that suffixes cannot read or modify contract state.
-As all pure functions, however, they can perform pure external calls.
+As with all pure functions, however, they can perform pure external calls.
 
 .. index:: literal;address
 
@@ -66,7 +66,7 @@ As a special case, suffixes on :ref:`rational literals<rational_literals>` can o
 produced by the :ref:`fractional decomposition<fractional_decomposition>` of such a literal.
 
 Suffixes can only have parameters of types for which an implicit conversion from a literal exists.
-For single-parameter suffixes this includes the following types:
+For single-parameter suffixes, this includes the following types:
 
 +-------------------------------------------------------------+----------------------------------------------------------------+
 | Parameter type                                              | Accepted literals                                              |
@@ -91,7 +91,7 @@ For single-parameter suffixes this includes the following types:
 |                                                             | - :ref:`Unicode literals<unicode_literals>`                    |
 +-------------------------------------------------------------+----------------------------------------------------------------+
 
-For two-parameter suffix functions the first parameter (representing the mantissa) can be of any integer type.
+For two-parameter suffix functions, the first parameter (representing the mantissa) can be of any integer type.
 The second parameter (the exponent) must be of an unsigned integer type.
 
 .. note::
@@ -133,7 +133,7 @@ A suffix call has the same syntax as a literal with a :ref:`denomination<denomin
     true suffix;
 
 The literal passed as input to the suffix function must be immediately followed by the name of the suffix.
-The two must be separated by whitespace, unless it's a string, unicode or hexadecimal string literal,
+The two must be separated by whitespace unless it's a string, unicode or hexadecimal string literal,
 in which case the whitespace is optional.
 
 This call syntax supports only a single literal argument.
@@ -146,7 +146,7 @@ by the compiler.
     There are no negative number literals in Solidity.
     A literal with a minus sign is an expression.
     ``-123 suffix`` is equivalent to ``-(123 suffix)``, so ``suffix`` does not receive ``-123`` as input.
-    The argument is instead ``123`` and the negation is applied to the returned value.
+    The argument is instead ``123``, and the negation is applied to the returned value.
 
 .. note::
     String concatenation produces a single literal at compilation time and therefore is not treated
