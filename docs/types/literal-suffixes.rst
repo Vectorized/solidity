@@ -98,7 +98,7 @@ The second parameter (the exponent) must be of an unsigned integer type.
     40-digit literals prefixed with ``0x`` such as, for example, ``0xdCad3a6d3569DF655070DEd06cb7A1b2Ccd1D3AF``
     always represent ``address`` literals in the language.
     To invoke a suffix accepting ``bytes20`` you must use one of the other literal kinds implicitly
-    convertible to ``bytes20``, e.g. a hexadecimal string literal
+    convertible to ``bytes20``, e.g., a hexadecimal string literal
     (``hex"dCad3a6d3569DF655070DEd06cb7A1b2Ccd1D3AF"``).
 
 .. note::
@@ -151,7 +151,7 @@ by the compiler.
 .. note::
     String concatenation produces a single literal at compilation time and therefore is not treated
     as an expression.
-    This means that e.g. ``"abc" "def" suffix`` is a valid suffix call.
+    This means that e.g., ``"abc" "def" suffix`` is a valid suffix call.
 
 .. index:: ! literal suffix; function call syntax, overload
 
@@ -208,7 +208,7 @@ Let us consider the following suffix definition:
     }
 
 The ``kg`` suffix can receive integer values like ``123 kg``, ``1.23e2 kg``, or ``12300e-2 kg``.
-However, invoking such a suffix with a fractional number (e.g. ``1.23 kg``) triggers an error.
+However, invoking such a suffix with a fractional number (e.g., ``1.23 kg``) triggers an error.
 We can fix that by adding an *exponent* parameter:
 
 .. code-block:: solidity
