@@ -18,7 +18,7 @@ Solidity defines several *denominations*, which can be applied as suffixes to
 Ether Units
 ===========
 
-A literal number can take a suffix of ``wei``, ``gwei`` or ``ether`` to specify a subdenomination of
+A literal number can take a suffix of ``wei``, ``gwei`` or ``ether`` to specify a sub-denomination of
 Ether, where Ether numbers without a postfix are assumed to be Wei.
 
 .. code-block:: solidity
@@ -28,7 +28,7 @@ Ether, where Ether numbers without a postfix are assumed to be Wei.
     assert(1 gwei == 1e9);
     assert(1 ether == 1e18);
 
-The only effect of the subdenomination suffix is a multiplication by a power of ten.
+The only effect of the sub-denomination suffix is a multiplication by a power of ten.
 
 .. note::
     The denominations ``finney`` and ``szabo`` have been removed in version 0.7.0.
