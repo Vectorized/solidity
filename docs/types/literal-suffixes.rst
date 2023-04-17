@@ -53,7 +53,7 @@ Defining Suffix Functions
 Literal suffixes can be defined by applying the built-in ``suffix`` modifier to a :ref:`free function<functions>`.
 
 Only pure functions can be used as suffixes.
-This means that suffixes cannot read or modify contract state.
+This means that suffixes cannot read or modify blockchain state.
 As with all pure functions, however, they can perform pure external calls.
 
 .. index:: literal;address
@@ -197,7 +197,7 @@ To allow defining suffixes that work with fractional literals, like ``1.23``, th
 a special form of a suffix definition.
 Such a suffix can be considered a more general form of a suffix taking a single integer argument.
 
-A single-parameter suffix can be applied only to those rational number literals, which represent
+A single-parameter suffix can be applied only to those rational number literals which represent
 integers.
 Let us consider the following suffix definition:
 
