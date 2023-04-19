@@ -125,7 +125,19 @@ Regardless of the call syntax used and in contrast to applying a denomination, t
 call is itself not considered a literal.
 As a consequence, it cannot be used as input of another suffix call, and calculations on it are performed
 within its type rather than in arbitrary precision (as is the case with calculations on rational number
-literals).
+literals):
+
+.. code-block:: solidity
+
+    123 suffix1 suffix2;    // This will not compile.
+    suffix1(123) suffix2;   // This will not compile.
+
+Such calls are possible only with the function call syntax:
+
+.. code-block:: solidity
+
+    suffix2(123 suffix1);   // This is fine.
+    suffix2(suffix1(123));  // This is fine.
 
 .. note::
     As all free functions, suffix definitions can be :ref:`overloaded<overload-function>`.
