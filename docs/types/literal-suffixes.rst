@@ -90,8 +90,8 @@ performed implicitly by the compiler.
     The argument is instead ``123``, and the negation is applied to the returned value.
 
 .. note::
-    String concatenation produces a single literal at compilation time and therefore is not treated
-    as an expression.
+    :ref:`String literal concatenation<string_literal_concatenation>` produces a single literal at
+    compilation time and therefore is not treated as an expression.
     This means that e.g., ``"abc" "def" suffix`` is a valid suffix call.
 
 .. index:: ! literal suffix; function call syntax, overload
