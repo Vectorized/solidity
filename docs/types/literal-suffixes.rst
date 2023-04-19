@@ -173,6 +173,7 @@ For single-parameter suffixes, this includes the following types:
 | ``bool``                                                    | - :ref:`Boolean<booleans>` literals                            |
 +-------------------------------------------------------------+----------------------------------------------------------------+
 | ``uint8``, ..., ``uint256``, ``int8``, ..., ``int256``      | - :ref:`Rational literals<rational_literals>` (including zero) |
+|                                                             | - Hexadecimal number literals                                  |
 +-------------------------------------------------------------+----------------------------------------------------------------+
 | ``address``                                                 | - :ref:`Address literals<address_literals>`                    |
 +-------------------------------------------------------------+----------------------------------------------------------------+
