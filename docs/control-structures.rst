@@ -236,10 +236,10 @@ on the limitations of this call syntax.
     Suffix calls should not be confused with the application of :ref:`denomination suffixes<denominations>`,
     which use the same syntax, but simply modify the literal without an actual function call.
 
-    There is only a limited number of denominations and their names cannot be reused by literal
+    There is only a limited number of denominations and their names cannot be used for literal
     suffixes.
-    The only exceptions are ``finney`` and ``szabo``, which used to be denominations but are now
-    usable as identifiers.
+    The only exceptions are ``finney`` and ``szabo``, which used to be denominations, but were
+    deprecated, and are now usable as identifiers.
 
 
 .. index:: ! new, contracts;creating
