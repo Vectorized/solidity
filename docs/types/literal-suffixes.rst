@@ -94,6 +94,11 @@ performed implicitly by the compiler.
     compilation time and therefore is not treated as an expression.
     This means that e.g., ``"abc" "def" suffix`` is a valid suffix call.
 
+.. note::
+    Fractional decomposition is performed at compilation time.
+    Using the suffix call syntax does not incur any extra gas cost compared to the equivalent
+    function call.
+
 .. index:: ! literal suffix; function call syntax, overload
 .. _calling_suffix_functions_with_function_call_syntax:
 
