@@ -51,10 +51,7 @@ To fill this gap, it is possible to define custom conversions as *literal suffix
 Calling Suffix Functions
 ------------------------
 
-There are two ways to call a suffix function:
-
-#. Suffix call.
-#. Function call.
+There are two ways to call a suffix function: a *suffix call* and a *function call*.
 
 .. index:: ! literal suffix; suffix call syntax
 
