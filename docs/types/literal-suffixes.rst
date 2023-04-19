@@ -197,7 +197,7 @@ The second parameter (the exponent) must be of an unsigned integer type.
 .. note::
     :ref:`The function call syntax<calling_suffix_functions_with_function_call_syntax>` is the only
     way to pass a negative integer value into a suffix function.
-    Despite this, signed interger types are allowed for suffix parameters.
+    Despite this, signed integer types are allowed for suffix parameters.
     They are still useful in cases where it is desirable to limit the range of the parameter or to
     avoid explicit conversions when the return type is signed.
 
