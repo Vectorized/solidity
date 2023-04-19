@@ -128,13 +128,15 @@ A suffix call has the same syntax as a literal with a :ref:`denomination<denomin
 
     42 suffix;
     1.23 suffix;
-    "abc" suffix;
-    hex"12ff"suffix;
+    0x1234 suffix;
+    'abc' suffix;
+    hex"12ff" suffix;
+    unicode"😃" suffix;
     true suffix;
 
 The literal passed as input to the suffix function must be immediately followed by the name of the suffix.
 The two must be separated by whitespace unless it's a string, unicode or hexadecimal string literal,
-in which case the whitespace is optional.
+in which case the whitespace is optional (i.e. ``'abc'suffix`` is also valid).
 
 This call syntax supports only a single literal argument.
 Variables or expressions (even as simple as wrapping the literal in parentheses) are not allowed.
@@ -166,8 +168,10 @@ This makes it possible to call such functions with arguments which are not liter
 
     suffix(42);
     suffix(123, 2);
-    suffix("abc");
+    suffix(0x1234);
+    suffix('abc');
     suffix(hex"12ff");
+    suffix(unicode"😃");
     suffix(true);
 
 Note that the fractional decomposition is not performed for this kind of call - two-argument
