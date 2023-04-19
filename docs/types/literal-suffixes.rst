@@ -74,8 +74,8 @@ A suffix call has the same syntax as a literal with a :ref:`denomination<denomin
     true suffix;
 
 The literal passed as input to the suffix function must be immediately followed by the name of the suffix.
-The two must be separated by whitespace unless it's a string, unicode or hexadecimal string literal,
-in which case the whitespace is optional (i.e. ``'abc'suffix`` is also valid).
+The two must be separated by whitespace unless it is a string, unicode or hexadecimal string literal,
+in which case the whitespace is optional (i.e. ``'abc'suffix`` is also allowed).
 
 This call syntax supports only a single literal argument.
 Variables or expressions (even as simple as wrapping the literal in parentheses) are not allowed.
@@ -101,8 +101,7 @@ Function Call Syntax
 ^^^^^^^^^^^^^^^^^^^^
 
 Suffix definitions are in all respects valid free functions, and this includes the ability to call
-them directly.
-This makes it possible to call such functions with arguments which are not literals.
+them directly:
 
 .. code-block:: solidity
 
@@ -113,6 +112,8 @@ This makes it possible to call such functions with arguments which are not liter
     suffix(hex"12ff");
     suffix(unicode"😃");
     suffix(true);
+
+This also makes it possible to call such functions with arguments which are not literals.
 
 Note that the fractional decomposition is not performed for this kind of call -
 :ref:`two-parameter suffix functions<suffix_function_parameters>` must be explicitly called with
