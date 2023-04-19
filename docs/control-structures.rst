@@ -207,8 +207,8 @@ The function can be used as a suffix: ``42 suffix``.
 
 For single-parameter suffixes, this call syntax is equivalent to passing the literal as an argument
 to an internal function call.
-For two-parameter suffixes the :ref:`fractional decomposition<fractional_decomposition>` is performed
-first to obtain the two input values.
+For two-parameter suffixes, :ref:`fractional decomposition<fractional_decomposition>` is performed
+first in order to obtain the two input values.
 
 See the section on :ref:`calling suffix functions<calling_suffix_functions>` for more information
 on the limitations of this call syntax.
