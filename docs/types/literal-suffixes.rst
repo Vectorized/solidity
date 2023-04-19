@@ -45,6 +45,89 @@ To fill this gap, it is possible to define custom conversions as *literal suffix
         }
     }
 
+.. index:: function;call
+.. _calling_suffix_functions:
+
+Calling Suffix Functions
+------------------------
+
+There are two ways to call a suffix function:
+
+#. Suffix call.
+#. Function call.
+
+.. index:: ! literal suffix; suffix call syntax
+
+Suffix Call Syntax
+^^^^^^^^^^^^^^^^^^
+
+A suffix call has the same syntax as a literal with a :ref:`denomination<denominations>`:
+
+.. code-block:: solidity
+
+    42 suffix;
+    1.23 suffix;
+    0x1234 suffix;
+    'abc' suffix;
+    hex"12ff" suffix;
+    unicode"😃" suffix;
+    true suffix;
+
+The literal passed as input to the suffix function must be immediately followed by the name of the suffix.
+The two must be separated by whitespace unless it's a string, unicode or hexadecimal string literal,
+in which case the whitespace is optional (i.e. ``'abc'suffix`` is also valid).
+
+This call syntax supports only a single literal argument.
+Variables or expressions (even as simple as wrapping the literal in parentheses) are not allowed.
+:ref:`Suffix functions defined with two parameters<suffix_function_parameters>` are also invoked with
+one literal - the :ref:`decomposition<fractional_decomposition>` of the literal into two values is
+performed implicitly by the compiler.
+
+.. warning::
+    There are no negative number literals in Solidity.
+    A literal with a minus sign is an expression.
+    ``-123 suffix`` is equivalent to ``-(123 suffix)``, so ``suffix`` does not receive ``-123`` as input.
+    The argument is instead ``123``, and the negation is applied to the returned value.
+
+.. note::
+    String concatenation produces a single literal at compilation time and therefore is not treated
+    as an expression.
+    This means that e.g., ``"abc" "def" suffix`` is a valid suffix call.
+
+.. index:: ! literal suffix; function call syntax, overload
+.. _calling_suffix_functions_with_function_call_syntax:
+
+Function Call Syntax
+^^^^^^^^^^^^^^^^^^^^
+
+Suffix definitions are in all respects valid free functions, and this includes the ability to call
+them directly.
+This makes it possible to call such functions with arguments which are not literals.
+
+.. code-block:: solidity
+
+    suffix(42);
+    suffix(123, 2);
+    suffix(0x1234);
+    suffix('abc');
+    suffix(hex"12ff");
+    suffix(unicode"😃");
+    suffix(true);
+
+Note that the fractional decomposition is not performed for this kind of call -
+:ref:`two-parameter suffix functions<suffix_function_parameters>` must be explicitly called with
+two arguments.
+
+Regardless of the call syntax used and in contrast to applying a denomination, the result of the
+call is itself not considered a literal.
+As a consequence, it cannot be used as input of another suffix call, and calculations on it are performed
+within its type rather than in arbitrary precision (as is the case with calculations on rational number
+literals).
+
+.. note::
+    As all free functions, suffix definitions can be :ref:`overloaded<overload-function>`.
+    Overloaded suffixes, however, cannot be invoked using the suffix call syntax.
+
 .. index:: ! literal suffix;definition, function;free
 
 Defining Suffix Functions
@@ -57,6 +140,7 @@ This means that suffixes cannot read or modify blockchain state.
 As with all pure functions, however, they can perform pure external calls.
 
 .. index:: literal;address
+.. _suffix_function_parameters:
 
 Suffix Function Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -95,6 +179,13 @@ For two-parameter suffix functions, the first parameter (representing the mantis
 The second parameter (the exponent) must be of an unsigned integer type.
 
 .. note::
+    :ref:`The function call syntax<calling_suffix_functions_with_function_call_syntax>` is the only
+    way to pass a negative integer value into a suffix function.
+    Despite this, signed interger types are allowed for suffix parameters.
+    They are still useful in cases where it is desirable to limit the range of the parameter or to
+    avoid explicit conversions when the return type is signed.
+
+.. note::
     40-digit literals prefixed with ``0x`` such as, for example, ``0xdCad3a6d3569DF655070DEd06cb7A1b2Ccd1D3AF``
     always represent ``address`` literals in the language.
     To invoke a suffix accepting ``bytes20`` you must use one of the other literal kinds implicitly
@@ -105,91 +196,6 @@ The second parameter (the exponent) must be of an unsigned integer type.
     Suffix functions accepting ``address payable`` are not allowed since address literals are never payable.
 
 Suffix functions may not accept or return reference types with ``storage`` or ``calldata`` locations.
-
-.. index:: function;call
-.. _calling_suffix_functions:
-
-Calling Suffix Functions
-------------------------
-
-There are two ways to call a suffix function:
-
-#. Suffix call.
-#. Function call.
-
-.. index:: ! literal suffix; suffix call syntax
-
-Suffix Call Syntax
-^^^^^^^^^^^^^^^^^^
-
-A suffix call has the same syntax as a literal with a :ref:`denomination<denominations>`:
-
-.. code-block:: solidity
-
-    42 suffix;
-    1.23 suffix;
-    0x1234 suffix;
-    'abc' suffix;
-    hex"12ff" suffix;
-    unicode"😃" suffix;
-    true suffix;
-
-The literal passed as input to the suffix function must be immediately followed by the name of the suffix.
-The two must be separated by whitespace unless it's a string, unicode or hexadecimal string literal,
-in which case the whitespace is optional (i.e. ``'abc'suffix`` is also valid).
-
-This call syntax supports only a single literal argument.
-Variables or expressions (even as simple as wrapping the literal in parentheses) are not allowed.
-Suffix functions defined with two parameters are also invoked with one literal - the
-:ref:`decomposition<fractional_decomposition>` of the literal into two values is performed implicitly
-by the compiler.
-
-.. note::
-    There are no negative number literals in Solidity.
-    A literal with a minus sign is an expression.
-    ``-123 suffix`` is equivalent to ``-(123 suffix)``, so ``suffix`` does not receive ``-123`` as input.
-    The argument is instead ``123``, and the negation is applied to the returned value.
-
-.. note::
-    String concatenation produces a single literal at compilation time and therefore is not treated
-    as an expression.
-    This means that e.g., ``"abc" "def" suffix`` is a valid suffix call.
-
-.. index:: ! literal suffix; function call syntax, overload
-
-Function Call Syntax
-^^^^^^^^^^^^^^^^^^^^
-
-Suffix definitions are in all respects valid free functions, and this includes the ability to call
-them directly.
-This makes it possible to call such functions with arguments which are not literals.
-
-.. code-block:: solidity
-
-    suffix(42);
-    suffix(123, 2);
-    suffix(0x1234);
-    suffix('abc');
-    suffix(hex"12ff");
-    suffix(unicode"😃");
-    suffix(true);
-
-Note that the fractional decomposition is not performed for this kind of call - two-argument
-suffix functions must be explicitly called with two arguments.
-
-Regardless of the call syntax used and in contrast to applying a denomination, the result of the
-call is itself not considered a literal.
-As a consequence, it cannot be used as input of another suffix call, and calculations on it are performed
-within its type rather than in arbitrary precision (as is the case with calculations on rational number
-literals).
-
-.. note::
-    Function call syntax is the only way to pass a negative integer value into a suffix function
-    that has a parameter of a signed integer type.
-
-.. note::
-    As all free functions, suffix definitions can be :ref:`overloaded<overload-function>`.
-    Overloaded suffixes, however, cannot be invoked using the suffix call syntax.
 
 .. index:: ! fractional decomposition
 .. _fractional_decomposition:
