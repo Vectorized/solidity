@@ -83,6 +83,7 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/map.hpp>
 
 #include <utility>
 #include <map>
@@ -95,7 +96,6 @@ using namespace solidity::langutil;
 using namespace solidity::frontend;
 
 using solidity::util::errinfo_comment;
-using solidity::util::toHex;
 
 static int g_compilerStackCounts = 0;
 
@@ -406,15 +406,14 @@ void CompilerStack::importASTs(map<string, Json::Value> const& _sources)
 {
 	if (m_stackState != Empty)
 		solThrow(CompilerError, "Must call importASTs only before the SourcesSet state.");
-	m_sourceJsons = _sources;
-	map<string, ASTPointer<SourceUnit>> reconstructedSources = ASTJsonImporter(m_evmVersion).jsonToSourceUnit(m_sourceJsons);
+	map<string, ASTPointer<SourceUnit>> reconstructedSources = ASTJsonImporter(m_evmVersion).jsonToSourceUnit(_sources);
 	for (auto& src: reconstructedSources)
 	{
 		string const& path = src.first;
 		Source source;
 		source.ast = src.second;
 		source.charStream = make_shared<CharStream>(
-			util::jsonCompactPrint(m_sourceJsons[src.first]),
+			util::jsonCompactPrint(_sources.at(src.first)),
 			src.first,
 			true // imported from AST
 		);
@@ -429,17 +428,15 @@ void CompilerStack::importASTs(map<string, Json::Value> const& _sources)
 void CompilerStack::importFromEVMAssemblyStack(std::string const& _sourceName, std::string const& _source)
 {
 	solRequire(m_stackState == Empty, CompilerError, "");
-	m_evmAssemblyStack = std::make_unique<evmasm::EVMAssemblyStack>(m_evmVersion);
+	m_evmAssemblyStack = make_unique<evmasm::EVMAssemblyStack>(m_evmVersion);
 	Json::Value evmAsmJson;
 	if (m_evmAssemblyStack->parseAndAnalyze(_sourceName, _source))
 	{
 		m_evmAssemblyStack->assemble();
 		string const name{m_evmAssemblyStack->name()};
-		Json::Value const& json = m_evmAssemblyStack->json();
-		m_sourceJsons[name] = json;
 		Contract& contract = m_contracts[name];
 		contract.evmAssembly = m_evmAssemblyStack->evmAssembly();
-		contract.evmRuntimeAssembly= m_evmAssemblyStack->evmRuntimeAssembly();
+		contract.evmRuntimeAssembly = m_evmAssemblyStack->evmRuntimeAssembly();
 		contract.object = m_evmAssemblyStack->object();
 		contract.runtimeObject = m_evmAssemblyStack->runtimeObject();
 
@@ -726,7 +723,7 @@ bool CompilerStack::compile(State _stopAfter)
 					{
 						if (
 							SourceLocation const* sourceLocation =
-								boost::get_error_info<langutil::errinfo_sourceLocation>(_unimplementedError)
+							boost::get_error_info<langutil::errinfo_sourceLocation>(_unimplementedError)
 						)
 						{
 							string const* comment = _unimplementedError.comment();
@@ -734,9 +731,11 @@ bool CompilerStack::compile(State _stopAfter)
 								1834_error,
 								Error::Type::CodeGenerationError,
 								*sourceLocation,
-								"Unimplemented feature error"
-									+ ((comment && !comment->empty()) ? ": " + *comment : string{}) + " in "
-									+ _unimplementedError.lineInfo()
+								fmt::format(
+									"Unimplemented feature error {} in {}",
+									(comment && !comment->empty()) ? ": " + *comment : "",
+									_unimplementedError.lineInfo()
+								)
 							);
 							return false;
 						}
@@ -966,8 +965,8 @@ Json::Value CompilerStack::assemblyJSON(string const& _contractName) const
 	Contract const& currentContract = contract(_contractName);
 	if (currentContract.evmAssembly)
 	{
-		std::vector<std::string> sources = sourceNames();
-		if (std::find(sources.begin(), sources.end(), CompilerContext::yulUtilityFileName()) == sources.end())
+		vector<string> sources = sourceNames();
+		if (find(sources.begin(), sources.end(), CompilerContext::yulUtilityFileName()) == sources.end())
 			sources.emplace_back(CompilerContext::yulUtilityFileName());
 		currentContract.evmAssembly->setSourceList(sources);
 		return currentContract.evmAssembly->assemblyJSON();
@@ -978,16 +977,10 @@ Json::Value CompilerStack::assemblyJSON(string const& _contractName) const
 
 vector<string> CompilerStack::sourceNames() const
 {
-	vector<string> names;
 	if (m_evmAssemblyStack)
-	{
-		for (auto const& s: m_evmAssemblyStack->evmAssembly()->sourceList())
-			names.push_back(s);
-	} else {
-		for (auto const& s: m_sources)
-			names.push_back(s.first);
-	}
-	return names;
+		return m_evmAssemblyStack->evmAssembly()->sourceList();
+
+	return ranges::to<vector>(m_sources | ranges::views::keys);
 }
 
 map<string, unsigned> CompilerStack::sourceIndices() const
