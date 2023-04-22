@@ -35,6 +35,7 @@
 #include <libsolutil/cxx20.h>
 
 #include <variant>
+#include <vector>
 
 #include <range/v3/view/reverse.hpp>
 
@@ -321,7 +322,7 @@ void DataFlowAnalyzer::popScope()
 	m_variableScopes.pop_back();
 }
 
-void DataFlowAnalyzer::clearValues(set<YulString> _variables)
+void DataFlowAnalyzer::clearValues(set<YulString> const& _variables)
 {
 	// All variables that reference variables to be cleared also have to be
 	// cleared, but not recursively, since only the value of the original
@@ -351,12 +352,19 @@ void DataFlowAnalyzer::clearValues(set<YulString> _variables)
 			_variables.count(_item.second);
 	});
 
+	std::vector<YulString> toClear;
 	// Also clear variables that reference variables to be cleared.
 	for (auto const& variableToClear: _variables)
 		if (auto&& references = m_state.references.getReversedOrNullptr(variableToClear))
-			_variables += *references;
+			toClear.insert(toClear.end(), references->begin(), references->end());
 
 	// Clear the value and update the reference relation.
+	for (auto const& name: toClear)
+	{
+		m_state.value.erase(name);
+		m_state.references.erase(name);
+	}
+
 	for (auto const& name: _variables)
 	{
 		m_state.value.erase(name);
