@@ -377,6 +377,135 @@ private:
 	}
 };
 
+/// An simple optimized map for mapping StackSlots to ints.
+class Multiplicity
+{
+public:
+	Multiplicity(): m_functionReturnLabelSlotMultiplicity(0), m_junkSlotMultiplicity(0) {}
+
+	int& operator[](StackSlot const& _slot)
+	{
+		if (auto* p = std::get_if<solidity::yul::FunctionCallReturnLabelSlot>(&_slot))
+			return m_functionCallReturnLabelSlotMultiplicity[*p];
+		if (std::holds_alternative<solidity::yul::FunctionReturnLabelSlot>(_slot))
+			return m_functionReturnLabelSlotMultiplicity;
+		if (auto* p = std::get_if<solidity::yul::VariableSlot>(&_slot))
+			return m_variableSlotMultiplicity[*p];
+		if (auto* p = std::get_if<solidity::yul::LiteralSlot>(&_slot))
+			return m_literalSlotMultiplicity[*p];
+		if (auto* p = std::get_if<solidity::yul::TemporarySlot>(&_slot))
+			return m_temporarySlotMultiplicity[*p];
+		return m_junkSlotMultiplicity;
+	}
+
+	int at(StackSlot const& _slot) const
+	{
+		if (auto* p = std::get_if<solidity::yul::FunctionCallReturnLabelSlot>(&_slot))
+			return m_functionCallReturnLabelSlotMultiplicity.at(*p);
+		if (std::holds_alternative<solidity::yul::FunctionReturnLabelSlot>(_slot))
+			return m_functionReturnLabelSlotMultiplicity;
+		if (auto* p = std::get_if<solidity::yul::VariableSlot>(&_slot))
+			return m_variableSlotMultiplicity.at(*p);
+		if (auto* p = std::get_if<solidity::yul::LiteralSlot>(&_slot))
+			return m_literalSlotMultiplicity.at(*p);
+		if (auto* p = std::get_if<solidity::yul::TemporarySlot>(&_slot))
+			return m_temporarySlotMultiplicity.at(*p);
+		return m_junkSlotMultiplicity;
+	}
+
+private:
+	template <class T>
+	class StackSlotHashMap
+	{
+	public:
+		StackSlotHashMap(): m_capacity(0), m_size(0) {}
+
+		int& operator[](T const& _key)
+		{
+			if (m_capacity == 0)
+			{
+				m_capacity = initialCapacity;
+				m_elements.resize(initialCapacity);
+			}
+
+			size_t mask = m_capacity - 1;
+			++m_size;
+			// Use a 50% load factor for simplicity and performance.
+			if (m_size > m_capacity / 2)
+			{
+				m_capacity *= 2;
+				mask = m_capacity - 1;
+				m_newElements.resize(m_capacity);
+				for (auto const& element: m_elements)
+					if (element.second.second)
+					{
+						size_t i = (element.first * 2) & mask;
+						while (m_newElements[i].second.second)
+							i = (i + 1) & mask;
+						m_newElements[i] = element;
+					}
+				std::swap(m_elements, m_newElements); // To avoid reallocation.
+				m_newElements.clear(); // So that a future resize will reset the elements.
+			}
+			uintptr_t id = _key.id();
+			for (size_t i = (id * 2) & mask; ; i = (i + 1) & mask)
+			{
+				if (!m_elements[i].second.second)
+				{
+					m_elements[i].first = id;
+					m_elements[i].second.second = 1;
+					return m_elements[i].second.first;
+				}
+				if (m_elements[i].first == id)
+					return m_elements[i].second.first;
+			}
+		}
+
+		int at(T const& _key) const
+		{
+			if (m_capacity == 0)
+				return notFound();
+			size_t mask = m_capacity - 1;
+			uintptr_t id = _key.id();
+			for (size_t i = (id * 2) & mask; ; i = (i + 1) & mask)
+			{
+				if (!m_elements[i].second.second)
+					return notFound();
+				if (m_elements[i].first == id)
+					return m_elements[i].second.first;
+			}
+		}
+
+	private:
+		int notFound() const
+		{
+			throw std::out_of_range("Multiplicity::at() out of range");
+			return 0;
+		}
+
+		using Element = std::pair<uintptr_t, std::pair<int, unsigned>>;
+
+		/// Must be a power of 2.
+		constexpr static size_t initialCapacity = 32;
+
+		/// Number of slots.
+		size_t m_capacity;
+		/// Number of occupied slots.
+		size_t m_size;
+
+		/// For holding the elements.
+		std::vector<Element> m_elements;
+		/// For rebuilding the table.
+		std::vector<Element> m_newElements;
+	};
+
+	StackSlotHashMap<FunctionCallReturnLabelSlot> m_functionCallReturnLabelSlotMultiplicity;
+	int m_functionReturnLabelSlotMultiplicity;
+	StackSlotHashMap<VariableSlot> m_variableSlotMultiplicity;
+	std::map<LiteralSlot, int> m_literalSlotMultiplicity;
+	std::map<TemporarySlot, int> m_temporarySlotMultiplicity;
+	int m_junkSlotMultiplicity;
+};
 
 /// Transforms @a _currentStack to @a _targetStack, invoking the provided shuffling operations.
 /// Modifies @a _currentStack itself after each invocation of the shuffling operations.
@@ -395,7 +524,7 @@ void createStackLayout(Stack& _currentStack, Stack const& _targetStack, Swap _sw
 		Swap swapCallback;
 		PushOrDup pushOrDupCallback;
 		Pop popCallback;
-		std::map<StackSlot, int> multiplicity;
+		Multiplicity multiplicity;
 		ShuffleOperations(
 			Stack& _currentStack,
 			Stack const& _targetStack,

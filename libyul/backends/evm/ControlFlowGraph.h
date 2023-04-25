@@ -49,6 +49,7 @@ struct FunctionCallReturnLabelSlot
 	std::reference_wrapper<yul::FunctionCall const> call;
 	bool operator==(FunctionCallReturnLabelSlot const& _rhs) const { return &call.get() == &_rhs.call.get(); }
 	bool operator<(FunctionCallReturnLabelSlot const& _rhs) const { return &call.get() < &_rhs.call.get(); }
+	uintptr_t id() const { return reinterpret_cast<uintptr_t>(&call.get()); }
 	static constexpr bool canBeFreelyGenerated = true;
 };
 /// The return jump target of a function while generating the code of the function body.
@@ -79,6 +80,7 @@ struct VariableSlot
 	std::shared_ptr<DebugData const> debugData{};
 	bool operator==(VariableSlot const& _rhs) const { return &variable.get() == &_rhs.variable.get(); }
 	bool operator<(VariableSlot const& _rhs) const { return &variable.get() < &_rhs.variable.get(); }
+	uintptr_t id() const { return reinterpret_cast<uintptr_t>(&variable.get()); }
 	static constexpr bool canBeFreelyGenerated = false;
 };
 /// A slot containing a literal value.
