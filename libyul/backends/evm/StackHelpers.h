@@ -381,34 +381,38 @@ private:
 class Multiplicity
 {
 public:
-	Multiplicity(): m_functionReturnLabelSlotMultiplicity(0), m_junkSlotMultiplicity(0) {}
+	Multiplicity(size_t _initialCapacity):
+		m_functionCallReturnLabelSlotMultiplicity(_initialCapacity),
+		m_functionReturnLabelSlotMultiplicity(0),
+		m_variableSlotMultiplicity(_initialCapacity),
+		m_junkSlotMultiplicity(0) {}
 
 	int& operator[](StackSlot const& _slot)
 	{
-		if (auto* p = std::get_if<solidity::yul::FunctionCallReturnLabelSlot>(&_slot))
+		if (auto* p = std::get_if<FunctionCallReturnLabelSlot>(&_slot))
 			return m_functionCallReturnLabelSlotMultiplicity[*p];
-		if (std::holds_alternative<solidity::yul::FunctionReturnLabelSlot>(_slot))
+		if (std::holds_alternative<FunctionReturnLabelSlot>(_slot))
 			return m_functionReturnLabelSlotMultiplicity;
-		if (auto* p = std::get_if<solidity::yul::VariableSlot>(&_slot))
+		if (auto* p = std::get_if<VariableSlot>(&_slot))
 			return m_variableSlotMultiplicity[*p];
-		if (auto* p = std::get_if<solidity::yul::LiteralSlot>(&_slot))
+		if (auto* p = std::get_if<LiteralSlot>(&_slot))
 			return m_literalSlotMultiplicity[*p];
-		if (auto* p = std::get_if<solidity::yul::TemporarySlot>(&_slot))
+		if (auto* p = std::get_if<TemporarySlot>(&_slot))
 			return m_temporarySlotMultiplicity[*p];
 		return m_junkSlotMultiplicity;
 	}
 
 	int at(StackSlot const& _slot) const
 	{
-		if (auto* p = std::get_if<solidity::yul::FunctionCallReturnLabelSlot>(&_slot))
+		if (auto* p = std::get_if<FunctionCallReturnLabelSlot>(&_slot))
 			return m_functionCallReturnLabelSlotMultiplicity.at(*p);
-		if (std::holds_alternative<solidity::yul::FunctionReturnLabelSlot>(_slot))
+		if (std::holds_alternative<FunctionReturnLabelSlot>(_slot))
 			return m_functionReturnLabelSlotMultiplicity;
-		if (auto* p = std::get_if<solidity::yul::VariableSlot>(&_slot))
+		if (auto* p = std::get_if<VariableSlot>(&_slot))
 			return m_variableSlotMultiplicity.at(*p);
-		if (auto* p = std::get_if<solidity::yul::LiteralSlot>(&_slot))
+		if (auto* p = std::get_if<LiteralSlot>(&_slot))
 			return m_literalSlotMultiplicity.at(*p);
-		if (auto* p = std::get_if<solidity::yul::TemporarySlot>(&_slot))
+		if (auto* p = std::get_if<TemporarySlot>(&_slot))
 			return m_temporarySlotMultiplicity.at(*p);
 		return m_junkSlotMultiplicity;
 	}
@@ -418,46 +422,49 @@ private:
 	class StackSlotHashMap
 	{
 	public:
-		StackSlotHashMap(): m_capacity(0), m_size(0) {}
+		StackSlotHashMap(size_t _initialCapacity)
+		{
+			m_capacity = 0;
+			m_size = 0;
+			m_initialCapacity = 2;
+			while (m_initialCapacity < _initialCapacity)
+				m_initialCapacity *= 2;
+		}
 
 		int& operator[](T const& _key)
 		{
 			if (m_capacity == 0)
 			{
-				m_capacity = initialCapacity;
-				m_elements.resize(initialCapacity);
+				m_capacity = m_initialCapacity;
+				m_elements.resize(m_initialCapacity);
 			}
 
-			size_t mask = m_capacity - 1;
 			++m_size;
 			// Use a 50% load factor for simplicity and performance.
 			if (m_size > m_capacity / 2)
 			{
 				m_capacity *= 2;
-				mask = m_capacity - 1;
-				m_newElements.resize(m_capacity);
+				std::vector<Element> newElements(m_capacity);
 				for (auto const& element: m_elements)
-					if (element.second.second)
+					if (element.first)
 					{
-						size_t i = (element.first * 2) & mask;
-						while (m_newElements[i].second.second)
-							i = (i + 1) & mask;
-						m_newElements[i] = element;
+						size_t i = hash(element.first);
+						while (newElements[i].first)
+							i = inc(i);
+						newElements[i] = element;
 					}
-				std::swap(m_elements, m_newElements); // To avoid reallocation.
-				m_newElements.clear(); // So that a future resize will reset the elements.
+				m_elements = std::move(newElements);
 			}
 			uintptr_t id = _key.id();
-			for (size_t i = (id * 2) & mask; ; i = (i + 1) & mask)
+			for (size_t i = hash(id); ; i = inc(i))
 			{
-				if (!m_elements[i].second.second)
+				if (!m_elements[i].first)
 				{
 					m_elements[i].first = id;
-					m_elements[i].second.second = 1;
-					return m_elements[i].second.first;
+					return m_elements[i].second;
 				}
 				if (m_elements[i].first == id)
-					return m_elements[i].second.first;
+					return m_elements[i].second;
 			}
 		}
 
@@ -465,14 +472,13 @@ private:
 		{
 			if (m_capacity == 0)
 				return notFound();
-			size_t mask = m_capacity - 1;
 			uintptr_t id = _key.id();
-			for (size_t i = (id * 2) & mask; ; i = (i + 1) & mask)
+			for (size_t i = hash(id); ; i = inc(i))
 			{
-				if (!m_elements[i].second.second)
+				if (!m_elements[i].first)
 					return notFound();
 				if (m_elements[i].first == id)
-					return m_elements[i].second.first;
+					return m_elements[i].second;
 			}
 		}
 
@@ -483,20 +489,26 @@ private:
 			return 0;
 		}
 
-		using Element = std::pair<uintptr_t, std::pair<int, unsigned>>;
+		size_t hash(uintptr_t _id) const
+		{
+			_id ^= (_id >> 3) * 16777619;
+			_id ^= (_id >> 11) * 2166136261;
+			return _id & (m_capacity - 1);
+		}
 
-		/// Must be a power of 2.
-		constexpr static size_t initialCapacity = 32;
+		size_t inc(size_t _i) const { return (_i + 1) & (m_capacity - 1); }
+
+		using Element = std::pair<uintptr_t, int>;
 
 		/// Number of slots.
 		size_t m_capacity;
+		/// Initial capacity.
+		size_t m_initialCapacity;
 		/// Number of occupied slots.
 		size_t m_size;
 
 		/// For holding the elements.
 		std::vector<Element> m_elements;
-		/// For rebuilding the table.
-		std::vector<Element> m_newElements;
 	};
 
 	StackSlotHashMap<FunctionCallReturnLabelSlot> m_functionCallReturnLabelSlotMultiplicity;
@@ -536,7 +548,8 @@ void createStackLayout(Stack& _currentStack, Stack const& _targetStack, Swap _sw
 			targetStack(_targetStack),
 			swapCallback(_swap),
 			pushOrDupCallback(_pushOrDup),
-			popCallback(_pop)
+			popCallback(_pop),
+			multiplicity(std::max(currentStack.size(), targetStack.size()))
 		{
 			for (auto const& slot: currentStack)
 				--multiplicity[slot];
