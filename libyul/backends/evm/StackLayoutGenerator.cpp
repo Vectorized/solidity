@@ -178,10 +178,7 @@ Stack createIdealLayout(Stack const& _operationOutput, Stack const& _post, Calla
 			vector<variant<PreviousSlot, StackSlot>>& _layout,
 			Stack const& _post,
 			Callable _generateSlotOnTheFly
-		):
-			layout(_layout),
-			post(_post),
-			generateSlotOnTheFly(_generateSlotOnTheFly)
+		): layout(_layout), post(_post), generateSlotOnTheFly(_generateSlotOnTheFly)
 		{
 			for (auto const& layoutSlot: layout)
 				if (StackSlot const* slot = get_if<StackSlot>(&layoutSlot))
