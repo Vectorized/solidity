@@ -381,12 +381,6 @@ private:
 class Multiplicity
 {
 public:
-	Multiplicity(size_t _initialCapacity):
-		m_functionCallReturnLabelSlotMultiplicity(_initialCapacity),
-		m_functionReturnLabelSlotMultiplicity(0),
-		m_variableSlotMultiplicity(_initialCapacity),
-		m_junkSlotMultiplicity(0) {}
-
 	int& operator[](StackSlot const& _slot)
 	{
 		if (auto* p = std::get_if<FunctionCallReturnLabelSlot>(&_slot))
@@ -418,102 +412,9 @@ public:
 	}
 
 private:
-	template <class T>
-	class StackSlotHashMap
-	{
-	public:
-		StackSlotHashMap(size_t _initialCapacity)
-		{
-			m_capacity = 0;
-			m_size = 0;
-			m_initialCapacity = 2;
-			while (m_initialCapacity < _initialCapacity)
-				m_initialCapacity *= 2;
-		}
-
-		int& operator[](T const& _key)
-		{
-			if (m_capacity == 0)
-			{
-				m_capacity = m_initialCapacity;
-				m_elements.resize(m_initialCapacity);
-			}
-
-			++m_size;
-			// Use a 50% load factor for simplicity and performance.
-			if (m_size > m_capacity / 2)
-			{
-				m_capacity *= 2;
-				std::vector<Element> newElements(m_capacity);
-				for (auto const& element: m_elements)
-					if (element.first)
-					{
-						size_t i = hash(element.first);
-						while (newElements[i].first)
-							i = inc(i);
-						newElements[i] = element;
-					}
-				m_elements = std::move(newElements);
-			}
-			uintptr_t id = _key.id();
-			for (size_t i = hash(id); ; i = inc(i))
-			{
-				if (!m_elements[i].first)
-				{
-					m_elements[i].first = id;
-					return m_elements[i].second;
-				}
-				if (m_elements[i].first == id)
-					return m_elements[i].second;
-			}
-		}
-
-		int at(T const& _key) const
-		{
-			if (m_capacity == 0)
-				return notFound();
-			uintptr_t id = _key.id();
-			for (size_t i = hash(id); ; i = inc(i))
-			{
-				if (!m_elements[i].first)
-					return notFound();
-				if (m_elements[i].first == id)
-					return m_elements[i].second;
-			}
-		}
-
-	private:
-		int notFound() const
-		{
-			throw std::out_of_range("Multiplicity::at() out of range");
-			return 0;
-		}
-
-		size_t hash(uintptr_t _id) const
-		{
-			_id ^= (_id >> 3) * 16777619;
-			_id ^= (_id >> 11) * 2166136261;
-			return _id & (m_capacity - 1);
-		}
-
-		size_t inc(size_t _i) const { return (_i + 1) & (m_capacity - 1); }
-
-		using Element = std::pair<uintptr_t, int>;
-
-		/// Number of slots.
-		size_t m_capacity;
-		/// Initial capacity.
-		size_t m_initialCapacity;
-		/// Number of occupied slots.
-		size_t m_size;
-
-		/// For holding the elements.
-		std::vector<Element> m_elements;
-	};
-
-	StackSlotHashMap<FunctionCallReturnLabelSlot> m_functionCallReturnLabelSlotMultiplicity;
+	std::map<FunctionCallReturnLabelSlot, int> m_functionCallReturnLabelSlotMultiplicity;
 	int m_functionReturnLabelSlotMultiplicity;
-	StackSlotHashMap<VariableSlot> m_variableSlotMultiplicity;
+	std::map<VariableSlot, int> m_variableSlotMultiplicity;
 	std::map<LiteralSlot, int> m_literalSlotMultiplicity;
 	std::map<TemporarySlot, int> m_temporarySlotMultiplicity;
 	int m_junkSlotMultiplicity;
@@ -548,8 +449,7 @@ void createStackLayout(Stack& _currentStack, Stack const& _targetStack, Swap _sw
 			targetStack(_targetStack),
 			swapCallback(_swap),
 			pushOrDupCallback(_pushOrDup),
-			popCallback(_pop),
-			multiplicity(std::max(currentStack.size(), targetStack.size()))
+			popCallback(_pop)
 		{
 			for (auto const& slot: currentStack)
 				--multiplicity[slot];
