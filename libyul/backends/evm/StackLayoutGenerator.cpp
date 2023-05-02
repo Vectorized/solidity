@@ -181,7 +181,6 @@ Stack createIdealLayout(Stack const& _operationOutput, Stack const& _post, Calla
 		):
 			layout(_layout),
 			post(_post),
-			multiplicity(std::max(layout.size(), post.size())),
 			generateSlotOnTheFly(_generateSlotOnTheFly)
 		{
 			for (auto const& layoutSlot: layout)
